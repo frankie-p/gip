@@ -3,7 +3,7 @@
 # gip - git based backup system
 
 VERSION=1.0.0
-eval CONFIG_PATH="~/.config/gip"
+eval CONFIG_PATH="~/.config/gip/gip"
 
 source_config() {
 	if [[ ! -f "$CONFIG_PATH" ]] ; then
@@ -21,17 +21,23 @@ ensure_tmp() {
 	fi
 }
 
-copy_tmp() {
-	# check files before start copy
+list() {
+	for file in "${FILES[@]}" ; do
+                echo "$file"
+        done
+}
 
+check_files() {
 	for file in "${FILES[@]}" ; do
                 if [[ ! -f "$file" ]] ; then
 			echo "file $file not found"
 		     	 exit
                 fi
 	done
+}
 
-	# start copy routine
+update() {
+	check_files
 
 	for file in "${FILES[@]}" ; do
 		echo  "$file => $TMP_DIR/${file#/}"
@@ -43,14 +49,22 @@ copy_tmp() {
 
 commit() {
 	pushd "$TMP_DIR"
-
-	# add new files
 	git add .
-
 	git commit -am "gip commit"
+	popd
+}
 
+push() {
+	pushd "$TMP_DIR"
 	git push
+	popd
+}
 
+status() {
+	source_config
+
+	pushd "$TMP_DIR"
+	git status
 	popd
 }
 
@@ -60,10 +74,12 @@ def_config() {
 		exit
 	fi
 
+	mkdir -p "$(dirname "$CONFIG_PATH")"
+
 	echo "# gip - git based backup system" >> "$CONFIG_PATH"
 	echo "" >> "$CONFIG_PATH"
 	echo "# tmp directory which is used to checkout the git project" >> "$CONFIG_PATH"
-	echo "TMP_DIR=/tmp/gib" >> "$CONFIG_PATH"
+	echo "TMP_DIR=/tmp/gip" >> "$CONFIG_PATH"
 	echo "" >> "$CONFIG_PATH"
 	echo "# url of the git project" >> "$CONFIG_PATH"
 	echo "GIT_URL=<put git url here>" >> "$CONFIG_PATH"
@@ -74,20 +90,17 @@ def_config() {
 	echo "config file created, please edit $CONFIG_PATH"
 }
 
-update() {
-	source_config
-	ensure_tmp
-	copy_tmp
-	commit
-}
-
 usage() {
-	echo "Usage: gib [COMMAND] [OPTIONS]"
-	echo ""
-	echo "Commands:"
-	echo -e "\tupdate"
+	echo "Usage: gib [OPTIONS]"
 	echo ""
 	echo "Options:"
+	echo -e "\t--list-files    List configured files"
+	echo -e "\t--check-files   Check if configured files exists"
+	echo -e "\t--status        Show status"
+	echo -e "\t--update        Check and update files (copies configured files to the tmp dir)"
+	echo -e "\t--commit        Create local commit"
+	echo -e "\t--push          Push commits to git"
+	echo -e "\t--full          Same as '--update --commit --push'"
 	echo -e "\t--def-config    Create default config"
 	echo -e "\t--help          Print help"
 	echo -e "\t--version       Print version"
@@ -97,28 +110,67 @@ for i in "$@" ; do
 	case $i in
 		--version|-V)
 			echo "$VERSION"
+			exit
+			;;
+		--list-files|-l)
+			do_list=true
 			shift
 			;;
-		update)
+		--check-files)
+			do_check=true
+			shift
+			;;
+		--status)
+			status
+			shift
+			;;
+		--update)
 			do_update=true
 			shift
 			;;
-		--def-config)
-			do_def_config=true
+		--commit|-c)
+			do_commit=true
 			shift
+			;;
+		--push)
+			do_push=true
+			shift
+			;;
+		--full)
+			do_update=true
+			do_commit=true
+			shift
+			;;
+		--def-config)
+			def_config
+			exit
 			;;
 		*)
 			usage
-			shift
+			exit
 			;;
 	esac
 done
 
-if [[ ! -z "$do_def_config" ]] ; then
-	def_config
-elif [[ ! -z "$do_update" ]] ; then
+source_config
+ensure_tmp
+
+if [[ ! -z "$do_list" ]] ; then
+	list
+fi
+
+if [[ ! -z "$do_check" ]] ; then
+	check_files
+fi
+
+if [[ ! -z "$do_update" ]] ; then
 	update
+fi
+
+if [[ ! -z "$do_commit" ]] ; then
 	commit
 fi
 
-
+if [[ ! -z "$do_push" ]] ; then
+	push
+fi
