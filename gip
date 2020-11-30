@@ -92,6 +92,32 @@ usage() {
 	echo -e "\t--version       Print version"
 }
 
-usage
+for i in "$@" ; do
+	case $i in
+		--version|-V)
+			echo "$VERSION"
+			shift
+			;;
+		update)
+			do_update=true
+			shift
+			;;
+		--def-config)
+			do_def_config=true
+			shift
+			;;
+		*)
+			usage
+			shift
+			;;
+	esac
+done
+
+if [[ ! -z "$do_def_config" ]] ; then
+	def_config
+elif [[ ! -z "$do_update" ]] ; then
+	update
+	commit
+fi
 
 
