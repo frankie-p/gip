@@ -15,7 +15,7 @@ make def_config
 ```
 __Important:__ You should have a look at the config file after it is created!
 
-## Uninstallation
+Uninstall with
 ```shell
 sudo make uninstall
 ```
