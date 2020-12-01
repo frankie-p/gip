@@ -36,6 +36,6 @@ uninstall:
 ifneq ("$(shell id -u)", "0")
 	@echo "You are not root, run this target as root please"
 else
-	@rm -f "$(CONFIG_PATH)"
+	@rm -rf "$(CONFIG_DIR)"
 	@rm -f "/usr/local/bin/gip"
 endif
