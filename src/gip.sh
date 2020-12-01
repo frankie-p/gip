@@ -2,13 +2,13 @@
 
 # gip - git based backup system
 
-VERSION=1.0.1
+VERSION=1.0.2
 eval CONFIG_PATH="~/.config/gip/gip"
 
 source_config() {
     if [[ ! -f "$CONFIG_PATH" ]] ; then
-            echo "config file not found, call --def-config to create default configuration"
-            exit
+            echo "missing config file"
+            exit 1
     fi
 
     source "$CONFIG_PATH"
@@ -19,7 +19,7 @@ ensure_tmp() {
         mkdir -p "$TMP_DIR"
 
         if [[ -z "$option_verbose" ]] ; then
-            git clone $GIT_URL "$TMP_DIR" > /dev/null
+            git clone --quiet $GIT_URL "$TMP_DIR" > /dev/null
         else
             git clone $GIT_URL "$TMP_DIR"
         fi
@@ -36,9 +36,13 @@ command_check() {
     for file in "${FILES[@]}" ; do
         if [[ ! -f "$file" ]] ; then
             echo "$file not found"
-            exit
+            has_error=true
         fi
     done
+
+    if [[ ! -z "$has_error" ]] ; then
+        exit 1
+    fi
 }
 
 command_update() {
@@ -90,29 +94,6 @@ command_status() {
         git status
         popd
     fi
-}
-
-# obsolete and will be moved to Makefile install target
-def_config() {
-    if [[ -f "$CONFIG_PATH" ]] ; then
-        echo "config file exists"
-        exit
-    fi
-
-    mkdir -p "$(dirname "$CONFIG_PATH")"
-
-    echo "# gip - git based backup system" >> "$CONFIG_PATH"
-    echo "" >> "$CONFIG_PATH"
-    echo "# tmp directory which is used to checkout the git project" >> "$CONFIG_PATH"
-    echo "TMP_DIR=/tmp/gip" >> "$CONFIG_PATH"
-    echo "" >> "$CONFIG_PATH"
-    echo "# url of the git project" >> "$CONFIG_PATH"
-    echo "GIT_URL=<put git url here>" >> "$CONFIG_PATH"
-    echo "" >> "$CONFIG_PATH"
-    echo "# list of files to be backuped" >> "$CONFIG_PATH"
-    echo "FILES=(\"/path/file/1\" \"/path/file/2\")" >> "$CONFIG_PATH"
-
-    echo "config file created, please edit $CONFIG_PATH"
 }
 
 usage() {
