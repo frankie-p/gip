@@ -109,6 +109,7 @@ usage() {
     echo -e "\tfull            Same as 'gip update && gip commit && gip push'"
     echo ""
     echo "Options:"
+    echo -e "\t-m|--message    Commit message"
     echo -e "\t-v|--verbose    Verbose outputs"
     echo -e "\t-h|--help       Print help"
     echo -e "\t-V|--version    Print version"
@@ -116,56 +117,30 @@ usage() {
 
 # pre parse arguments
 
-args=()
+#args=()
 
-for arg in "$@" ; do
-    if [[ $arg == -* && $arg != --* ]] ; then
-        for (( i=1; i<${#arg}; i++ )); do
-            args+=("-${arg:$i:1}")
-        done
-    else
-        args+=($arg)
-    fi
-done
+#for arg in "$@" ; do
+#    if [[ $arg == -* && $arg != --* ]] ; then
+#        for (( i=1; i<${#arg}; i++ )); do
+#            args+=("-${arg:$i:1}")
+#        done
+#    else
+#        args+=($arg)
+#    fi
+#done
 
 #end of pre parse arguments
 
-counter=0
-
-for i in "${args[@]}" ; do
-    case $i in
-        list)
-            do_list=true
-            ((counter++))
-            ;;
-        status)
-            do_status=true
-            ((counter++))
-            ;;
-        check)
-            do_check=true
-            ((counter++))
-            ;;
-        update)
-            do_update=true
-            ((counter++))
-            ;;
-        commit)
-            do_commit=true
-            ((counter++))
-            ;;
-        push)
-            do_push=true
-            ((counter++))
-            ;;
-        full)
-            do_update=true
-            do_commit=true
-            do_push=true
-            ((counter++))
+while [ $# -ne 0 ] ; do
+    case $1 in
+        --message|-m)
+            option_message="$2"
+            shift
+            shift
             ;;
         --verbose|-v)
             option_verbose=true
+            shift
             ;;
         --version|-V)
             echo "$VERSION"
@@ -175,39 +150,52 @@ for i in "${args[@]}" ; do
             usage
             exit
             ;;
-        *)
-            usage
+        --*|-*)
+            echo "invalid option $1"
             exit 1
             ;;
+        *)
+            if [[ ! -z "$command" ]] ; then
+                echo "command already specified"
+                exit 1
+            fi
+
+            command=$1
+            shift
     esac
 done
 
-[[ "$counter" -eq "0" ]] && usage && exit 1
-[[ "$counter" -ge "2" ]] && echo "multiple commands not supported" && exit 1
+[[ -z "$command" ]] && echo "no command specified" && exit 1
 
 source_config
 ensure_tmp
 
-if [[ ! -z "$do_list" ]] ; then
-    command_list
-fi
-
-if [[ ! -z "$do_status" ]] ; then
-    command_status
-fi
-
-if [[ ! -z "$do_check" ]] ; then
-    command_check
-fi
-
-if [[ ! -z "$do_update" ]] ; then
-    command_update
-fi
-
-if [[ ! -z "$do_commit" ]] ; then
-    command_commit
-fi
-
-if [[ ! -z "$do_push" ]] ; then
-    command_push
-fi
+case $command in
+    list)
+        do_list
+        ;;
+    status)
+        do_status
+        ;;
+    check)
+        do_check
+        ;;
+    update)
+        do_update
+        ;;
+    commit)
+        do_commit
+        ;;
+    push)
+        do_push
+        ;;
+    full)
+        do_update
+        do_commit
+        do_push
+        ;;
+    *)
+        echo "unknown command"
+        exit 1
+        ;;
+esac
