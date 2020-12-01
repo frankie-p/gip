@@ -2,7 +2,7 @@
 
 # gip - git based backup system
 
-VERSION=1.0.2
+VERSION=1.0.3
 eval CONFIG_PATH="~/.config/gip/gip"
 
 source_config() {
@@ -176,27 +176,27 @@ ensure_tmp
 
 case $command in
     list)
-        do_list
+        command_list
         ;;
     status)
-        do_status
+        command_status
         ;;
     check)
-        do_check
+        command_check
         ;;
     update)
-        do_update
+        command_update
         ;;
     commit)
-        do_commit
+        command_commit
         ;;
     push)
-        do_push
+        command_push
         ;;
     full)
-        do_update
-        do_commit
-        do_push
+        command_update
+        command_commit
+        command_push
         ;;
     *)
         echo "unknown command"
