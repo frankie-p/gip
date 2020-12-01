@@ -154,7 +154,7 @@ while [ $# -ne 0 ] ; do
             usage
             exit
             ;;
-        --*|-*)
+        -*)
             echo "invalid option $1"
             exit 1
             ;;
