@@ -46,7 +46,7 @@ command_check() {
 }
 
 command_update() {
-    check_files
+    command_check
 
     for file in "${FILES[@]}" ; do
         if [[ ! -z "$option_verbose" ]] ; then
