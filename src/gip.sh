@@ -59,15 +59,19 @@ command_update() {
 }
 
 command_commit() {
+    if [[ -z "$option_message" ]] ; then
+        option_message="gip commit"
+    fi
+
     if [[ -z "$option_verbose" ]] ; then
         pushd "$TMP_DIR" > /dev/null
         git add . > /dev/null
-        git commit -am "gip commit" > /dev/null
+        git commit -am "$option_message" > /dev/null
         popd > /dev/null
     else
         pushd "$TMP_DIR"
         git add .
-        git commit -am "gip commit"
+        git commit -am "$option_message"
         popd
     fi
 }
