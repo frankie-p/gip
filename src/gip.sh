@@ -26,6 +26,10 @@ ensure_tmp() {
     fi
 }
 
+command_edit() {
+	"$EDITOR" "$CONFIG_PATH"
+}
+
 command_list() {
     for file in "${FILES[@]}" ; do
         echo "$file"
@@ -104,6 +108,7 @@ usage() {
     echo "Usage: gip [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
+    echo -e "\tedit            Use system editor to edit config file"
     echo -e "\tlist            List configured files"
     echo -e "\tstatus          Show status"
     echo -e "\tcheck           Check if configured files exists"
@@ -175,6 +180,9 @@ source_config
 ensure_tmp
 
 case $command in
+    edit)
+        command_edit
+        ;;
     list)
         command_list
         ;;
