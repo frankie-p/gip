@@ -2,7 +2,7 @@
 
 # gip - git based backup system
 
-VERSION=1.0.3
+VERSION=1.0.4
 eval CONFIG_PATH="~/.config/gip/gip"
 
 source_config() {
