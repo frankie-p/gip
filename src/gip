@@ -6,7 +6,7 @@ VERSION=1.1.0
 
 eval GIP_CONFIG="~/.config/gip/gip"
 
-source "gip_secure.sh"
+source "gip-secure"
 
 source_config() {
     if [[ ! -f "$GIP_CONFIG" ]] ; then

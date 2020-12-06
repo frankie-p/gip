@@ -33,5 +33,5 @@ gip_secure() {
         exit 3
     fi
 
-    openssl enc -aes-256-cbc -md sha512 -in "$1" -k "$GIP_KEY" -out "$2"
+    openssl enc -aes-256-cbc -md sha512 -in "$1" -k "$GIP_KEY" -out "$2" > /dev/null
 }

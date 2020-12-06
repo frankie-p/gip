@@ -14,13 +14,18 @@ endif
 	@echo "# gip - git based backup system" >> "$(CONFIG_PATH)"
 	@echo "" >> "$(CONFIG_PATH)"
 	@echo "# tmp directory which is used to checkout the git project" >> "$(CONFIG_PATH)"
-	@echo "TMP_DIR=/tmp/gip" >> "$(CONFIG_PATH)"
+	@echo "GIP_TMP=/tmp/gip" >> "$(CONFIG_PATH)"
 	@echo "" >> "$(CONFIG_PATH)"
 	@echo "# url of the git project" >> "$(CONFIG_PATH)"
-	@echo "GIT_URL=<put git url here>" >> "$(CONFIG_PATH)"
+	@echo "GIP_REMOTE=<put git url here>" >> "$(CONFIG_PATH)"
 	@echo "" >> "$(CONFIG_PATH)"
-	@echo "# list of files to be backuped" >> "$(CONFIG_PATH)"
-	@echo "FILES=(\"/path/file/1\" \"/path/file/2\")" >> "$(CONFIG_PATH)"
+	@echo "# path to key for securing files" >> "$(CONFIG_PATH)"
+	@echo "# generate key: openssl rand 2048 > gip.key" >> "$(CONFIG_PATH)"
+	@echo "# encrypt/decryprt: openssl enc -aes-256-cbc -md sha512 -in <path> -k gip.key -out <path>"$(CONFIG_PATH)"
+	@echo "#GIP_KEY=~/.ssh/gip/gip.key" >> "$(CONFIG_PATH)"
+	@echo "" >> "$(CONFIG_PATH)"
+	@echo "# use gip add to add files" >> "$(CONFIG_PATH)"
+	@echo "# use gip secure to secure files" >> "$(CONFIG_PATH)"
 
 	@echo "config file created, please edit $(CONFIG_PATH)"
 endif
@@ -29,7 +34,8 @@ install:
 ifneq ("$(shell id -u)", "0")
 	@echo "You are not root, run this target as root please"
 else
-	@cp src/gip.sh /usr/local/bin/gip
+	@cp src/gip-secure /usr/local/bin/gip-secure
+	@cp src/gip /usr/local/bin/gip
 endif
 
 uninstall:
@@ -38,4 +44,5 @@ ifneq ("$(shell id -u)", "0")
 else
 	@rm -rf "$(CONFIG_DIR)"
 	@rm -f "/usr/local/bin/gip"
+	@rm -f "/usr/local/bin/gip-secure"
 endif
