@@ -2,45 +2,87 @@
 
 # gip - git based backup system
 
-VERSION=1.0.4
-eval CONFIG_PATH="~/.config/gip/gip"
+VERSION=1.1.0
+
+eval GIP_CONFIG="~/.config/gip/gip"
+
+source "gip_secure.sh"
 
 source_config() {
-    if [[ ! -f "$CONFIG_PATH" ]] ; then
+    if [[ ! -f "$GIP_CONFIG" ]] ; then
             echo "missing config file"
             exit 1
     fi
 
-    source "$CONFIG_PATH"
+    source "$GIP_CONFIG"
+
+    eval GIP_PUB="$GIP_PUB"
 }
 
 ensure_tmp() {
-    if [[ ! -d "$TMP_DIR/.git" ]] ; then
-        mkdir -p "$TMP_DIR"
+    if [[ -z "$GIP_REMOTE" ]] ; then
+        echo "GIP_REMOTE not specified"
+        exit 1
+    fi
+
+    if [[ ! -d "$GIP_TMP/.git" ]] ; then
+        mkdir -p "$GIP_TMP"
 
         if [[ -z "$option_verbose" ]] ; then
-            git clone --quiet $GIT_URL "$TMP_DIR" > /dev/null
+            git clone --quiet $GIP_REMOTE "$GIP_TMP" > /dev/null
         else
-            git clone $GIT_URL "$TMP_DIR"
+            git clone $GIP_REMOTE "$GIP_TMP"
         fi
     fi
 }
 
-command_edit() {
-	"$EDITOR" "$CONFIG_PATH"
+command_add() {
+    if [[ -z "$GIP_TARGETS" ]] ; then
+        echo "missing target(s)"
+        exit 1
+    fi
+
+    for target in "${GIP_TARGETS[@]}" ; do
+        for file in "${GIP_FILES[@]}" ; do
+            if [[ "$file" = "$target" ]] ; then
+                echo "target $target already exists"
+                exit 2
+            fi
+        done
+    done
+
+    # all targets passed, now add
+
+    for target in "${GIP_TARGETS[@]}" ; do
+        echo "GIP_FILES+=(\"$target\")" >> $GIP_CONFIG
+
+        if [[ ! -z "$option_secure" ]] ; then
+            echo "GIP_SECURE+=(\"$target\")" >> $GIP_CONFIG
+        fi
+    done
+}
+
+command_config() {
+    #here we could add --write for $EDITOR and otherwise read with cat or less
+	"$EDITOR" "$GIP_CONFIG"
 }
 
 command_list() {
-    for file in "${FILES[@]}" ; do
+    for file in "${GIP_FILES[@]}" ; do
+        if [[ ! -z "`gip_is_secure $file`" ]] ; then
+            echo -n "SECURE "
+        else
+            echo -n "       "
+        fi
         echo "$file"
     done
 }
 
 command_check() {
-    for file in "${FILES[@]}" ; do
+    for file in "${GIP_FILES[@]}" ; do
         if [[ ! -f "$file" ]] ; then
             echo "$file not found"
-            has_error=true
+            has_error="yes"
         fi
     done
 
@@ -52,13 +94,20 @@ command_check() {
 command_update() {
     command_check
 
-    for file in "${FILES[@]}" ; do
+    for file in "${GIP_FILES[@]}" ; do
         if [[ ! -z "$option_verbose" ]] ; then
             echo  "$file => $TMP_DIR/${file#/}"
         fi
 
+        # we create directory before encryption
+
         mkdir -p "$(dirname "$TMP_DIR/${file#/}")"
-        cp "$file" "$TMP_DIR/${file#/}"
+    
+        if [[ -z "`gip_is_secure $file`" ]] ; then
+            cp "$file" "$GIP_TMP/${file#/}"
+        else
+            gip_secure "$file" "$GIP_TMP/${file#/}"
+        fi
     done
 }
 
@@ -68,12 +117,12 @@ command_commit() {
     fi
 
     if [[ -z "$option_verbose" ]] ; then
-        pushd "$TMP_DIR" > /dev/null
+        pushd "$GIP_TMP" > /dev/null
         git add . > /dev/null
         git commit -am "$option_message" > /dev/null
         popd > /dev/null
     else
-        pushd "$TMP_DIR"
+        pushd "$GIP_TMP"
         git add .
         git commit -am "$option_message"
         popd
@@ -82,11 +131,11 @@ command_commit() {
 
 command_push() {
     if [[ -z "$option_verbose" ]] ; then
-        pushd "$TMP_DIR" > /dev/null
+        pushd "$GIP_TMP" > /dev/null
         git push > /dev/null
         popd > /dev/null
     else
-        pushd "$TMP_DIR"
+        pushd "$GIP_TMP"
         git push
         popd
     fi
@@ -94,11 +143,11 @@ command_push() {
 
 command_status() {
     if [[ -z "$option_verbose" ]] ; then
-        pushd "$TMP_DIR" > /dev/null
+        pushd "$GIP_TMP" > /dev/null
         git status
         popd > /dev/null
     else
-        pushd "$TMP_DIR"
+        pushd "$GIP_TMP"
         git status
         popd
     fi
@@ -108,8 +157,9 @@ usage() {
     echo "Usage: gip [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo -e "\tedit            Use system editor to edit config file"
-    echo -e "\tlist            List configured files"
+    echo -e "\tadd [TARGET]    Add target(s) to the GIP_FILES variables"
+    echo -e "\tconfig          Use system editor to edit config file"
+    echo -e "\tlist            List GIP_FILES variable"
     echo -e "\tstatus          Show status"
     echo -e "\tcheck           Check if configured files exists"
     echo -e "\tupdate          Check and update files (copies configured files to the tmp dir)"
@@ -118,14 +168,14 @@ usage() {
     echo -e "\tfull            Same as 'gip update && gip commit && gip push'"
     echo ""
     echo "Options:"
+    echo -e "\t-s|--secure     Move target(s) to  the GIP_SECURE variable"
     echo -e "\t-m|--message    Commit message"
     echo -e "\t-v|--verbose    Verbose outputs"
     echo -e "\t-h|--help       Print help"
     echo -e "\t-V|--version    Print version"
 }
 
-# pre parse arguments
-
+# pre parse arguments 
 #args=()
 
 #for arg in "$@" ; do
@@ -142,13 +192,18 @@ usage() {
 
 while [ $# -ne 0 ] ; do
     case $1 in
+        --secure|-s)
+            option_secure="yes"
+            shift
+            shift
+            ;;
         --message|-m)
             option_message="$2"
             shift
             shift
             ;;
         --verbose|-v)
-            option_verbose=true
+            option_verbose="yes"
             shift
             ;;
         --version|-V)
@@ -164,24 +219,28 @@ while [ $# -ne 0 ] ; do
             exit 1
             ;;
         *)
-            if [[ ! -z "$command" ]] ; then
-                echo "command already specified"
-                exit 1
+            if [[ -z "$GIP_COMMAND" ]] ; then
+                GIP_COMMAND=$1
+            else
+                GIP_TARGETS+=("$1")
             fi
 
-            command=$1
             shift
     esac
 done
 
-[[ -z "$command" ]] && echo "no command specified" && exit 1
+# todo nothing means todo nothing
+[[ -z "$GIP_COMMAND" ]] && exit 1
 
 source_config
 ensure_tmp
 
-case $command in
-    edit)
-        command_edit
+case $GIP_COMMAND in
+    add)
+        command_add
+        ;;
+    config)
+        command_config
         ;;
     list)
         command_list
@@ -207,7 +266,7 @@ case $command in
         command_push
         ;;
     *)
-        echo "unknown command"
+        echo "unknown command '$1'"
         exit 1
         ;;
 esac
