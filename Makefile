@@ -21,7 +21,7 @@ endif
 	@echo "" >> "$(CONFIG_PATH)"
 	@echo "# path to key for securing files" >> "$(CONFIG_PATH)"
 	@echo "# generate key: openssl rand 2048 > gip.key" >> "$(CONFIG_PATH)"
-	@echo "# encrypt/decryprt: openssl enc -aes-256-cbc -md sha512 -in <path> -k gip.key -out <path>"$(CONFIG_PATH)"
+	@echo "# encrypt/decryprt: openssl enc -aes-256-cbc -md sha512 -in <path> -k gip.key -out <path>" >> "$(CONFIG_PATH)"
 	@echo "#GIP_KEY=~/.ssh/gip/gip.key" >> "$(CONFIG_PATH)"
 	@echo "" >> "$(CONFIG_PATH)"
 	@echo "# use gip add to add files" >> "$(CONFIG_PATH)"
